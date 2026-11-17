@@ -343,22 +343,70 @@ function renderQuestion() {
   quizAnswered = false;
 }
 
-function checkAnswer(index){
-  if(quizAnswered)return;
-  const q=knowledge[currentCategory].questions[quizIndex];const feedback=$("quizFeedback");
-  if(index===q.correct){
-    quizAnswered=true;saveData.exp+=EXP_PER_CORRECT;persist();renderMap();
-    feedback.textContent=`答對了！獲得 ${EXP_PER_CORRECT} EXP 🎉`;
-    document.querySelectorAll(".answer-btn").forEach(b=>b.disabled=true);
-    const next=document.createElement("button");next.className="primary-btn";next.style.marginTop="8px";next.textContent=quizIndex===knowledge[currentCategory].questions.length-1?"完成測驗":"下一題";next.addEventListener("click",()=>{
-      if(quizIndex<knowledge[currentCategory].questions.length-1){quizIndex++;renderQuestion();}
-      else{$("quizPanel").innerHTML="<h3>🎉 測驗完成！</h3><p>太棒了！你的正確答案讓環保小島更進一步。</p>";}
-    });$("quizPanel").appendChild(next);
-  }else{
-    feedback.textContent="再想一想，選擇其他答案試試看！答對才會獲得 EXP。";
+
+function checkAnswer(index) {
+  if (quizAnswered) return;
+
+  const q = quizQuestions[quizIndex];
+  const feedback = $("quizFeedback");
+
+  if (index === q.correct) {
+    quizAnswered = true;
+
+    saveData.exp += EXP_PER_CORRECT;
+    persist();
+    renderMap();
+
+    feedback.textContent =
+      `答對了！獲得 ${EXP_PER_CORRECT} EXP 🎉`;
+
+    document.querySelectorAll(".answer-btn").forEach(btn => {
+      btn.disabled = true;
+    });
+
+    const next = document.createElement("button");
+    next.className = "primary-btn";
+    next.style.marginTop = "8px";
+
+    next.textContent =
+      quizIndex === QUIZ_QUESTION_COUNT - 1
+        ? "完成測驗"
+        : "下一題";
+
+    next.addEventListener("click", () => {
+      if (quizIndex < QUIZ_QUESTION_COUNT - 1) {
+        quizIndex++;
+        renderQuestion();
+      } else {
+        $("quizPanel").innerHTML = `
+          <h3>🎉 測驗完成！</h3>
+          <p>太棒了！你已完成這次的兩道環保知識測驗。</p>
+          <p>本次測驗最多可獲得 ${QUIZ_QUESTION_COUNT * EXP_PER_CORRECT} EXP。</p>
+          <p>目前累積 EXP：${saveData.exp}</p>
+          <button class="primary-btn" id="retakeQuizBtn">
+            再挑戰一次
+          </button>
+        `;
+
+        $("retakeQuizBtn").addEventListener("click", () => {
+          quizQuestions = createQuiz(currentCategory);
+          quizIndex = 0;
+          quizAnswered = false;
+          renderQuestion();
+        });
+      }
+    });
+
+    $("quizPanel").appendChild(next);
+
+  } else {
+    feedback.textContent =
+      "再想一想，選擇其他答案試試看！答對才會獲得 EXP。";
+
     showToast("再試一次，你可以的！");
   }
 }
+
 function updateBuildButtons(){
   const allUnlocked=saveData.exp>=FOG_COUNT*UNLOCK_COST;
   $("buildIntro").textContent=allUnlocked?"🎉 小島已全部探索完成！選擇建築，放到空曠土地上吧。":`目前還有雲霧尚未散去。需要累積 ${FOG_COUNT*UNLOCK_COST} EXP 才能開始建設。`;
