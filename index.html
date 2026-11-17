@@ -164,6 +164,40 @@
     </div>
   </div>
 
+<!-- AI 辨識錯誤回報視窗 -->
+<div id="reportModal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close-btn" data-close="reportModal">✕</button>
+
+    <p class="eyebrow">AI REPORT</p>
+    <h2>回報辨識問題</h2>
+
+    <p>如果 AI 分類錯誤，請選擇你認為正確的垃圾種類。</p>
+
+    <label for="correctCategory">正確的垃圾分類</label>
+    <select id="correctCategory">
+      <option value="">請選擇分類</option>
+      <option value="紙類">紙類</option>
+      <option value="塑膠類">塑膠類</option>
+      <option value="金屬類">金屬類</option>
+      <option value="玻璃類">玻璃類</option>
+      <option value="廚餘">廚餘</option>
+      <option value="一般垃圾">一般垃圾</option>
+    </select>
+
+    <label for="reportDescription">補充說明（選填）</label>
+    <textarea
+      id="reportDescription"
+      placeholder="例如：這是一個塑膠飲料瓶，卻被判斷成一般垃圾。"
+      rows="4"
+    ></textarea>
+
+    <button id="submitAiReportBtn" class="primary-btn">
+      送出回報
+    </button>
+  </div>
+</div>
+
   <div id="toast" class="toast hidden"></div>
   <script src="script.js"></script>
 </body>
