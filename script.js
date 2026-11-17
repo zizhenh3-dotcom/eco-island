@@ -4,6 +4,11 @@ const MODEL_URL = "https://teachablemachine.withgoogle.com/models/iABirI9qd/";
 
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = "ecoIslandSave_v2";
+// AI 辨識錯誤回報紀錄
+const REPORT_STORAGE_KEY = "ecoIslandReports_v1";
+let aiReports = JSON.parse(
+  localStorage.getItem(REPORT_STORAGE_KEY) || "[]"
+);
 const UNLOCK_COST = 40;
 const EXP_PER_CORRECT = 20;
 const FOG_COUNT = 6;
@@ -202,7 +207,32 @@ function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
 function showToast(message){ const t=$("toast"); t.textContent=message; t.classList.remove("hidden"); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.add("hidden"),2600); }
 function showModal(id){ $(id).classList.remove("hidden"); }
 function hideModal(id){ $(id).classList.add("hidden"); }
+function submitAiReport(){
+  const correctCategory = $("correctCategory").value;
+  const description = $("reportDescription").value.trim();
 
+  if(!correctCategory){
+    alert("請先選擇正確的垃圾分類！");
+    return;
+  }
+
+  const report = {
+    predictedCategory: currentCategory,
+    correctCategory: correctCategory,
+    description: description,
+    time: new Date().toLocaleString("zh-TW")
+  };
+
+  aiReports.push(report);
+
+  localStorage.setItem(
+    REPORT_STORAGE_KEY,
+    JSON.stringify(aiReports)
+  );
+
+  hideModal("reportModal");
+  showToast("感謝回報！已記錄這筆辨識問題。");
+}
 function enterGame(){
   const name = $("nicknameInput").value.trim();
   if(!name){ alert("請先輸入玩家暱稱！"); return; }
@@ -259,21 +289,63 @@ async function startCamera(){
   }catch(err){console.error(err);$("scanStatus").textContent="無法開啟相機。請允許瀏覽器使用相機，並使用 HTTPS 或 localhost。";}
 }
 function cameraLoop(){if(webcam&&!$("scanModal").classList.contains("hidden")){webcam.update();requestAnimationFrame(cameraLoop);}}
+
 async function predictImage(){
-  const ok=await loadModel();if(!ok)return;
+  const ok = await loadModel();
+  if(!ok) return;
+
   try{
     let predictions;
-    if(selectedImage){predictions=await model.predict(selectedImage);}
-    else if(webcam){predictions=await model.predict(webcam.canvas);}
-    else{$("scanStatus").textContent="請先開啟相機或上傳圖片。";return;}
-    predictions.sort((a,b)=>b.probability-a.probability);
-    const best=predictions[0]; const category=mapLabel(best.className);
-    currentCategory=category;
+
+    if(selectedImage){
+      predictions = await model.predict(selectedImage);
+    }
+    else if(webcam){
+      predictions = await model.predict(webcam.canvas);
+    }
+    else{
+      $("scanStatus").textContent = "請先開啟相機或上傳圖片。";
+      return;
+    }
+
+    predictions.sort((a,b) => b.probability - a.probability);
+
+    const best = predictions[0];
+    const category = mapLabel(best.className);
+
+    currentCategory = category;
+
     $("predictionResult").classList.remove("hidden");
-    $("predictionResult").innerHTML=`<h3>辨識結果：${category}</h3><p>模型標籤：${escapeHTML(best.className)}　｜　信心度：${(best.probability*100).toFixed(1)}%</p><p>辨識成功不會增加 EXP；閱讀知識並答對測驗才會獲得經驗值。</p>`;
-    showKnowledge(category); $("scanStatus").textContent="辨識完成！先閱讀下方知識，再挑戰測驗。";
-  }catch(err){console.error(err);$("scanStatus").textContent="辨識時發生問題，請再試一次。";}
+
+    $("predictionResult").innerHTML = `
+      <h3>辨識結果：${escapeHTML(category)}</h3>
+      <p>
+        模型標籤：${escapeHTML(best.className)}
+        ｜信心度：${(best.probability * 100).toFixed(1)}%
+      </p>
+      <p>辨識成功不會增加 EXP；閱讀知識並答對測驗才會獲得經驗值。</p>
+      <button id="openReportBtn" class="secondary-btn">
+        ⚠️ 回報辨識錯誤
+      </button>
+    `;
+
+    $("openReportBtn").addEventListener("click", () => {
+      $("correctCategory").value = "";
+      $("reportDescription").value = "";
+      showModal("reportModal");
+    });
+
+    showKnowledge(category);
+
+    $("scanStatus").textContent =
+      "辨識完成！先閱讀下方知識，再挑戰測驗。";
+
+  }catch(err){
+    console.error(err);
+    $("scanStatus").textContent = "辨識時發生問題，請再試一次。";
+  }
 }
+
 function mapLabel(label){
   const s=String(label).toLowerCase();
   if(/紙|paper|cardboard/.test(s))return "紙類";
