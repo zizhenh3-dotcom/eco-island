@@ -159,6 +159,7 @@ const knowledge = {
 // 記錄每個分類已經出現過的題目
 const quizHistory = {};
 
+// 隨機抽題：同一分類的題目盡量不重複
 function getRandomQuestion(category) {
   const questions = knowledge[category].questions;
 
@@ -181,6 +182,17 @@ function getRandomQuestion(category) {
   quizHistory[category].push(question.q);
 
   return question;
+}
+
+// 每次測驗隨機抽取指定數量的題目
+function createQuiz(category) {
+  const questions = [];
+
+  for (let i = 0; i < QUIZ_QUESTION_COUNT; i++) {
+    questions.push(getRandomQuestion(category));
+  }
+
+  return questions;
 }
 
 function loadSave(){
@@ -272,20 +284,65 @@ function mapLabel(label){
   return "一般垃圾";
 }
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function showKnowledge(category){
-  const item=knowledge[category];
+
+function showKnowledge(category) {
+  const item = knowledge[category];
+
   $("knowledgePanel").classList.remove("hidden");
-  $("knowledgePanel").innerHTML=`<h3>📚 ${item.title}</h3><p>${item.text}</p><p class="muted">閱讀完成後，接著回答兩道小測驗。每答對一題可獲得 ${EXP_PER_CORRECT} EXP。</p><button id="startQuizBtn" class="primary-btn">我讀完了，開始測驗</button>`;
+
+  $("knowledgePanel").innerHTML = `
+    <h3>📚 ${item.title}</h3>
+    <p>${item.text}</p>
+    <p class="muted">
+      閱讀完成後，接著回答兩道隨機小測驗。
+      每答對一題可獲得 ${EXP_PER_CORRECT} EXP。
+    </p>
+    <button id="startQuizBtn" class="primary-btn">
+      我讀完了，開始測驗
+    </button>
+  `;
+
   $("quizPanel").classList.add("hidden");
-  $("startQuizBtn").addEventListener("click",()=>{quizIndex=0;quizAnswered=false;renderQuestion();});
+
+  $("startQuizBtn").addEventListener("click", () => {
+    currentCategory = category;
+    quizQuestions = createQuiz(category);
+    quizIndex = 0;
+    quizAnswered = false;
+    renderQuestion();
+  });
 }
-function renderQuestion(){
-  const item=knowledge[currentCategory];const q=item.questions[quizIndex];
-  const panel=$("quizPanel");panel.classList.remove("hidden");
-  panel.innerHTML=`<h3>📝 環保知識測驗（${quizIndex+1}/${item.questions.length}）</h3><p class="quiz-question">${q.q}</p><div id="answerOptions"></div><p id="quizFeedback" class="status-text">選出你認為正確的答案。</p>`;
-  q.a.forEach((answer,index)=>{const btn=document.createElement("button");btn.className="answer-btn";btn.textContent=String.fromCharCode(65+index)+". "+answer;btn.addEventListener("click",()=>checkAnswer(index));$("answerOptions").appendChild(btn);});
-  quizAnswered=false;
+
+
+function renderQuestion() {
+  const q = quizQuestions[quizIndex];
+
+  const panel = $("quizPanel");
+  panel.classList.remove("hidden");
+
+  panel.innerHTML = `
+    <h3>📝 環保知識測驗（${quizIndex + 1}/${QUIZ_QUESTION_COUNT}）</h3>
+    <p class="quiz-question">${q.q}</p>
+    <div id="answerOptions"></div>
+    <p id="quizFeedback" class="status-text">
+      選出你認為正確的答案。
+    </p>
+  `;
+
+  q.a.forEach((answer, index) => {
+    const btn = document.createElement("button");
+
+    btn.className = "answer-btn";
+    btn.textContent = String.fromCharCode(65 + index) + ". " + answer;
+
+    btn.addEventListener("click", () => checkAnswer(index));
+
+    $("answerOptions").appendChild(btn);
+  });
+
+  quizAnswered = false;
 }
+
 function checkAnswer(index){
   if(quizAnswered)return;
   const q=knowledge[currentCategory].questions[quizIndex];const feedback=$("quizFeedback");
