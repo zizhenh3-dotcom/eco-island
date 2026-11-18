@@ -1,7 +1,22 @@
 // 環保小島：初學者版主程式
 // 已填入你先前提供的 Teachable Machine 模型網址。
 const MODEL_URL = "https://teachablemachine.withgoogle.com/models/iABirI9qd/";
+// Firebase 雲端連線設定
+const firebaseConfig = {
+  apiKey: "AIzaSyAa13in918MwOd4EMqowL-oZ_U-HG7PRgc",
+  authDomain: "eco-island-school.firebaseapp.com",
+  projectId: "eco-island-school",
+  storageBucket: "eco-island-school.firebasestorage.app",
+  messagingSenderId: "1054504887734",
+  appId: "1:1054504887734:web:40515ed9cb28e84aa78d17",
+  measurementId: "G-64TKRM7Z4P"
+};
 
+// 啟動 Firebase
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = "ecoIslandSave_v2";
 // AI 辨識錯誤回報紀錄
@@ -25,7 +40,9 @@ let quizQuestions = [];
 
 const QUIZ_QUESTION_COUNT = 2;
 let pendingBuildType = null;
-
+// Firebase 玩家登入與雲端同步狀態
+let currentUser = null;
+let cloudReady = false;
 
 const knowledge = {
   "紙類": {
@@ -203,7 +220,23 @@ function createQuiz(category) {
 function loadSave(){
   try { const raw = localStorage.getItem(STORAGE_KEY); if(raw) saveData = {...saveData,...JSON.parse(raw)}; } catch(e){ console.warn("讀取進度失敗",e); }
 }
-function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData)); }
+function persist(){
+  // 保留本機備份
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+
+  // 已登入且完成雲端讀取後，才同步到 Firebase
+  if(currentUser && cloudReady){
+    db.collection("users").doc(currentUser.uid).set({
+      nickname: saveData.nickname,
+      exp: saveData.exp,
+      built: saveData.built,
+      quizDone: saveData.quizDone,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true}).catch(error=>{
+      console.error("雲端同步失敗：", error);
+    });
+  }
+}
 function showToast(message){ const t=$("toast"); t.textContent=message; t.classList.remove("hidden"); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.add("hidden"),2600); }
 function showModal(id){ $(id).classList.remove("hidden"); }
 function hideModal(id){ $(id).classList.add("hidden"); }
@@ -233,10 +266,81 @@ function submitAiReport(){
   hideModal("reportModal");
   showToast("感謝回報！已記錄這筆辨識問題。");
 }
-function enterGame(){
+async function enterGame(){
   const name = $("nicknameInput").value.trim();
-  if(!name){ alert("請先輸入玩家暱稱！"); return; }
-  saveData.nickname = name.slice(0,12); persist(); renderGame();
+
+  if(!name){
+    alert("請先輸入玩家暱稱！");
+    return;
+  }
+
+  if(!currentUser){
+    alert("請先使用學校 Google 帳號登入！");
+    return;
+  }
+
+  saveData.nickname = name.slice(0,12);
+
+  try{
+    await db.collection("users").doc(currentUser.uid).set({
+      nickname: saveData.nickname,
+      exp: saveData.exp,
+      built: saveData.built,
+      quizDone: saveData.quizDone,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+
+    cloudReady = true;
+    persist();
+    renderGame();
+
+  }catch(error){
+    console.error("儲存玩家資料失敗：", error);
+    alert("雲端儲存失敗，請稍後再試。");
+  }
+}
+// Google 學校帳號登入
+async function signInWithGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  try {
+    const result = await auth.signInWithPopup(provider);
+    const user = result.user;
+
+    if(!user.email ||
+       !user.email.toLowerCase().endsWith("@stu.gish.tyc.edu.tw")){
+      await auth.signOut();
+      alert("請使用學校 Google 帳號登入！");
+      return;
+    }
+
+    currentUser = user;
+
+    const userRef = db.collection("users").doc(user.uid);
+    const userDoc = await userRef.get();
+
+    if(userDoc.exists){
+      saveData = {
+        ...saveData,
+        ...userDoc.data()
+      };
+
+      cloudReady = true;
+      renderGame();
+    }else{
+  cloudReady = true;
+
+  $("loginStatus").textContent =
+        "學校帳號驗證成功！請設定你的玩家暱稱。";
+
+      $("nicknameArea").classList.remove("hidden");
+      $("googleLoginBtn").classList.add("hidden");
+    }
+
+  }catch(error){
+    console.error("Google 登入失敗：", error);
+    alert("登入失敗，請稍後再試：" + error.message);
+  }
 }
 function renderGame(){
   $("loginScreen").classList.add("hidden"); $("gameScreen").classList.remove("hidden");
@@ -511,8 +615,11 @@ function placeBuilding(event){
   showToast("建設完成！小島變得更美了！");
 }
 function setupEvents(){
+  $("googleLoginBtn").addEventListener("click",signInWithGoogle);
   $("startGameBtn").addEventListener("click",enterGame);
-  $("nicknameInput").addEventListener("keydown",e=>{if(e.key==="Enter")enterGame();});
+$("nicknameInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter") enterGame();
+});
   $("openScanBtn").addEventListener("click",openScan);
   $("openBuildBtn").addEventListener("click",()=>{updateBuildButtons();showModal("buildModal");});
   $("openGuideBtn").addEventListener("click",()=>showModal("guideModal"));
@@ -532,5 +639,62 @@ function setupEvents(){
   document.querySelectorAll("[data-close]").forEach(btn=>btn.addEventListener("click",()=>hideModal(btn.dataset.close)));
   document.querySelectorAll(".modal").forEach(modal=>modal.addEventListener("click",e=>{if(e.target===modal)hideModal(modal.id);}));
 }
-loadSave();setupEvents();
-if(saveData.nickname){$("nicknameInput").value=saveData.nickname;renderGame();}
+// 載入本機備份並設定按鈕
+loadSave();
+setupEvents();
+
+// 自動檢查 Google 登入狀態
+auth.onAuthStateChanged(async user => {
+
+  if(!user){
+    currentUser = null;
+    cloudReady = false;
+    return;
+  }
+
+  // 限制只能使用學校帳號
+  if(!user.email ||
+     !user.email.toLowerCase().endsWith("@stu.gish.tyc.edu.tw")){
+
+    await auth.signOut();
+    alert("請使用學校 Google 帳號登入！");
+    return;
+  }
+
+  currentUser = user;
+
+  try{
+    const userRef = db.collection("users").doc(user.uid);
+    const userDoc = await userRef.get();
+
+    if(userDoc.exists){
+
+      // 讀取雲端遊戲進度
+      saveData = {
+        ...saveData,
+        ...userDoc.data()
+      };
+
+      cloudReady = true;
+      persist();
+      renderGame();
+
+    }else{
+
+      // 第一次登入，保留原本暱稱作為預填資料
+      cloudReady = true;
+
+      $("nicknameArea").classList.remove("hidden");
+      $("googleLoginBtn").classList.add("hidden");
+      $("nicknameInput").value = saveData.nickname || "";
+
+      $("loginStatus").textContent =
+        "登入成功！請設定你的玩家暱稱。";
+    }
+
+  }catch(error){
+    console.error("讀取雲端資料失敗：", error);
+    cloudReady = false;
+    alert("讀取雲端進度失敗，請確認網路和 Firebase 設定。");
+  }
+});
