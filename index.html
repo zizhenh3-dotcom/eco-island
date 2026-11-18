@@ -13,21 +13,37 @@
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
-  <div id="loginScreen" class="screen login-screen">
-    <div class="login-card">
-      <div class="leaf-mark">🌱</div>
-      <p class="eyebrow">WELCOME TO ECO ISLAND</p>
-      <h1>歡迎來到<br><span>環保小島</span></h1>
-      <p class="login-copy">一起學習垃圾分類，讓小島變得更美好！</p>
-      <label for="nicknameInput">輸入你的玩家暱稱</label>
-      <input id="nicknameInput" maxlength="12" autocomplete="nickname" placeholder="例如：環保小尖兵">
-      <button id="startGameBtn" class="primary-btn">開始遊戲　➜</button>
-      <p class="small-note">暱稱與遊戲進度會保存在這台裝置的瀏覽器中。</p>
+  
+<div id="loginScreen" class="screen login-screen">
+  <div class="login-card">
+    <div class="leaf-mark">🌱</div>
+    <p class="eyebrow">WELCOME TO ECO ISLAND</p>
+    <h1>歡迎來到<br><span>環保小島</span></h1>
+    <p class="login-copy">一起學習垃圾分類，讓小島變得更美好！</p>
+
+    <button id="googleLoginBtn" class="primary-btn">
+      使用學校 Google 帳號登入
+    </button>
+
+    <div id="nicknameArea" class="hidden">
+      <label for="nicknameInput">設定你的玩家暱稱</label>
+      <input id="nicknameInput" maxlength="12"
+        autocomplete="nickname" placeholder="例如：環保小尖兵">
+      <button id="startGameBtn" class="primary-btn">
+        開始遊戲　➜
+      </button>
     </div>
-    <div class="login-decoration deco-one">☁️</div>
-    <div class="login-decoration deco-two">🌴</div>
+
+    <p id="loginStatus" class="small-note">
+      請使用學校帳號登入（@stu.gish.tyc.edu.tw）
+    </p>
   </div>
 
+  <div class="login-decoration deco-one">☁️</div>
+  <div class="login-decoration deco-two">🌴</div>
+</div>
+
+    
   <main id="gameScreen" class="screen game-screen hidden">
     <header class="topbar">
       <div class="brand"><span class="brand-icon">🌿</span><div><strong>環保小島</strong><small>一起守護海洋與地球</small></div></div>
