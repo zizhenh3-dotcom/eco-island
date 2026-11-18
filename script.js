@@ -519,6 +519,7 @@ function setupEvents(){
   $("changeNameBtn").addEventListener("click",()=>{const name=prompt("請輸入新的玩家暱稱：",saveData.nickname);if(name&&name.trim()){saveData.nickname=name.trim().slice(0,12);persist();$("playerName").textContent="👤 "+saveData.nickname;}});
   $("startCameraBtn").addEventListener("click",startCamera);
   $("predictBtn").addEventListener("click",predictImage);
+  $("submitAiReportBtn").addEventListener("click",submitAiReport);
   $("imageUpload").addEventListener("change",e=>{
     const file=e.target.files[0];if(!file)return;
     const img=$("imagePreview");img.src=URL.createObjectURL(file);img.classList.remove("hidden");selectedImage=img;
