@@ -275,7 +275,7 @@ async function enterGame(){
   }
 
   if(!currentUser){
-    alert("請先使用學校 Google 帳號登入！");
+    alert("請先使用 Google 帳號登入！");
     return;
   }
 
@@ -299,10 +299,12 @@ async function enterGame(){
     alert("雲端儲存失敗，請稍後再試。");
   }
 }
-// Google 學校帳號登入
+// Google 帳號登入
 async function signInWithGoogle(){
-  const provider = new firebase.auth.GoogleAuthProvider();
-
+    const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({
+    prompt: "select_account"
+  });
   try {
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
@@ -326,7 +328,7 @@ async function signInWithGoogle(){
   cloudReady = true;
 
   $("loginStatus").textContent =
-        "學校帳號驗證成功！請設定你的玩家暱稱。";
+        "帳號驗證成功！請設定你的玩家暱稱。";
 
       $("nicknameArea").classList.remove("hidden");
       $("googleLoginBtn").classList.add("hidden");
@@ -611,6 +613,44 @@ function placeBuilding(event){
 }
 function setupEvents(){
   $("googleLoginBtn").addEventListener("click",signInWithGoogle);
+  // Google 帳號登出
+$("logoutBtn").addEventListener("click", async ()=>{
+  const confirmLogout = confirm("確定要登出目前的 Google 帳號嗎？");
+
+  if(!confirmLogout) return;
+
+  try{
+    await auth.signOut();
+
+    currentUser = null;
+    cloudReady = false;
+
+    // 清除本機玩家備份，避免不同帳號混用
+    localStorage.removeItem(STORAGE_KEY);
+
+    // 重設目前畫面資料，不刪除雲端進度
+    saveData = {
+      nickname: "",
+      exp: 0,
+      built: [],
+      quizDone: []
+    };
+
+    $("gameScreen").classList.add("hidden");
+    $("loginScreen").classList.remove("hidden");
+
+    $("nicknameArea").classList.add("hidden");
+    $("googleLoginBtn").classList.remove("hidden");
+    $("nicknameInput").value = "";
+
+    $("loginStatus").textContent =
+      "已登出，請使用 Google 帳號登入。";
+
+  }catch(error){
+    console.error("登出失敗：", error);
+    alert("登出失敗，請稍後再試。");
+  }
+});
   $("startGameBtn").addEventListener("click",enterGame);
 $("nicknameInput").addEventListener("keydown",e=>{
   if(e.key==="Enter") enterGame();
