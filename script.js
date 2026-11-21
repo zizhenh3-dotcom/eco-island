@@ -240,7 +240,8 @@ function persist(){
 function showToast(message){ const t=$("toast"); t.textContent=message; t.classList.remove("hidden"); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.add("hidden"),2600); }
 function showModal(id){ $(id).classList.remove("hidden"); }
 function hideModal(id){ $(id).classList.add("hidden"); }
-function submitAiReport(){
+
+async function submitAiReport(){
   const correctCategory = $("correctCategory").value;
   const description = $("reportDescription").value.trim();
 
@@ -249,23 +250,45 @@ function submitAiReport(){
     return;
   }
 
+  if(!currentUser){
+    alert("請先登入 Google 帳號！");
+    return;
+  }
+
   const report = {
-    predictedCategory: currentCategory,
+    userId: currentUser.uid,
+    predictedCategory: currentCategory || "",
     correctCategory: correctCategory,
     description: description,
-    time: new Date().toLocaleString("zh-TW")
+    time: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  aiReports.push(report);
+  try{
+    // 儲存到 Firebase Firestore
+    await db.collection("reports").add(report);
 
-  localStorage.setItem(
-    REPORT_STORAGE_KEY,
-    JSON.stringify(aiReports)
-  );
+    // 保留本機回報紀錄
+    aiReports.push({
+      predictedCategory: currentCategory,
+      correctCategory: correctCategory,
+      description: description,
+      time: new Date().toLocaleString("zh-TW")
+    });
 
-  hideModal("reportModal");
-  showToast("感謝回報！已記錄這筆辨識問題。");
+    localStorage.setItem(
+      REPORT_STORAGE_KEY,
+      JSON.stringify(aiReports)
+    );
+
+    hideModal("reportModal");
+    showToast("感謝回報！已成功儲存至雲端。");
+
+  }catch(error){
+    console.error("回報儲存失敗：", error);
+    alert("雲端回報失敗，請稍後再試。");
+  }
 }
+
 async function enterGame(){
   const name = $("nicknameInput").value.trim();
 
