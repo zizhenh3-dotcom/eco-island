@@ -615,6 +615,7 @@ function setupEvents(){
   $("googleLoginBtn").addEventListener("click",signInWithGoogle);
   // Google 帳號登出
 $("logoutBtn").addEventListener("click", async ()=>{
+  
   const confirmLogout = confirm("確定要登出目前的 Google 帳號嗎？");
 
   if(!confirmLogout) return;
