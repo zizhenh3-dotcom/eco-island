@@ -307,12 +307,7 @@ async function signInWithGoogle(){
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
 
-    if(!user.email ||
-       !user.email.toLowerCase().endsWith("@stu.gish.tyc.edu.tw")){
-      await auth.signOut();
-      alert("請使用學校 Google 帳號登入！");
-      return;
-    }
+    
 
     currentUser = user;
 
@@ -652,14 +647,7 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
-  // 限制只能使用學校帳號
-  if(!user.email ||
-     !user.email.toLowerCase().endsWith("@stu.gish.tyc.edu.tw")){
-
-    await auth.signOut();
-    alert("請使用學校 Google 帳號登入！");
-    return;
-  }
+  
 
   currentUser = user;
 
