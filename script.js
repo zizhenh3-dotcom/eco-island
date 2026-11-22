@@ -1006,8 +1006,13 @@ $("nicknameInput").addEventListener("keydown",e=>{
     if(webcam){webcam.stop();webcam=null;$("webcam-container").innerHTML="";}
     $("predictBtn").disabled=false;$("scanStatus").textContent="圖片已載入，按「辨識圖片」開始分析。";
   });
-  $("buildHouseBtn").addEventListener("click",()=>build("house"));
-  $("buildGardenBtn").addEventListener("click",()=>build("garden"));
+  
+$("buildHouseBtn").addEventListener("click",()=>build("house"));
+$("buildGardenBtn").addEventListener("click",()=>build("garden"));
+$("buildWindmillBtn").addEventListener("click",()=>build("windmill"));
+$("buildSolarBtn").addEventListener("click",()=>build("solar"));
+$("buildRecyclingBtn").addEventListener("click",()=>build("recycling"));
+
   $("islandMap").addEventListener("click",placeBuilding);
   document.querySelectorAll("[data-close]").forEach(btn=>btn.addEventListener("click",()=>hideModal(btn.dataset.close)));
   document.querySelectorAll(".modal").forEach(modal=>modal.addEventListener("click",e=>{if(e.target===modal)hideModal(modal.id);}));
