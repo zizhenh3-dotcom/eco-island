@@ -452,7 +452,7 @@ if(userDoc.exists){
   persist();
   renderGame();
 
-}
+
 
     }else{
   cloudReady = true;
