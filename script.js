@@ -29,7 +29,17 @@ const EXP_PER_CORRECT = 20;
 const FOG_COUNT = 6;
 const BUILDINGS = { house: {cost:60, emoji:"🏡", name:"溫馨小屋"}, garden:{cost:40,emoji:"🌳",name:"綠意庭院"} };
 
-let saveData = { nickname:"", exp:0, built:[], quizDone:[] };
+let saveData = {
+  nickname: "",
+  exp: 0,
+  built: [],
+  quizDone: [],
+  totalRecognitions: 0,
+  totalQuizzes: 0,
+  totalCorrect: 0,
+  totalAnswered: 0,
+  totalEarnedExp: 0
+};
 let model = null;
 let webcam = null;
 let selectedImage = null;
@@ -220,6 +230,7 @@ function createQuiz(category) {
 function loadSave(){
   try { const raw = localStorage.getItem(STORAGE_KEY); if(raw) saveData = {...saveData,...JSON.parse(raw)}; } catch(e){ console.warn("讀取進度失敗",e); }
 }
+
 function persist(){
   // 保留本機備份
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
@@ -231,12 +242,21 @@ function persist(){
       exp: saveData.exp,
       built: saveData.built,
       quizDone: saveData.quizDone,
+
+      // 學習統計資料
+      totalRecognitions: saveData.totalRecognitions || 0,
+      totalQuizzes: saveData.totalQuizzes || 0,
+      totalCorrect: saveData.totalCorrect || 0,
+      totalAnswered: saveData.totalAnswered || 0,
+      totalEarnedExp: saveData.totalEarnedExp || 0,
+
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, {merge:true}).catch(error=>{
       console.error("雲端同步失敗：", error);
     });
   }
 }
+
 function showToast(message){ const t=$("toast"); t.textContent=message; t.classList.remove("hidden"); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.add("hidden"),2600); }
 function showModal(id){ $(id).classList.remove("hidden"); }
 function hideModal(id){ $(id).classList.add("hidden"); }
@@ -438,6 +458,11 @@ async function predictImage(){
     const category = mapLabel(best.className);
 
     currentCategory = category;
+    saveData.totalRecognitions =
+  (saveData.totalRecognitions || 0) + 1;
+
+persist();
+renderStats();
 
     $("predictionResult").classList.remove("hidden");
 
@@ -540,17 +565,33 @@ function renderQuestion() {
 }
 
 
+
 function checkAnswer(index) {
   if (quizAnswered) return;
 
   const q = quizQuestions[quizIndex];
   const feedback = $("quizFeedback");
 
+  // 每次提交答案都計入作答總數
+  saveData.totalAnswered =
+    (saveData.totalAnswered || 0) + 1;
+
   if (index === q.correct) {
     quizAnswered = true;
 
+    // 答對統計
+    saveData.totalCorrect =
+      (saveData.totalCorrect || 0) + 1;
+
+    // 增加遊戲 EXP
     saveData.exp += EXP_PER_CORRECT;
+
+    // 累計實際獲得的 EXP
+    saveData.totalEarnedExp =
+      (saveData.totalEarnedExp || 0) + EXP_PER_CORRECT;
+
     persist();
+    renderStats();
     renderMap();
 
     feedback.textContent =
@@ -574,6 +615,13 @@ function checkAnswer(index) {
         quizIndex++;
         renderQuestion();
       } else {
+        // 完成一次完整測驗
+        saveData.totalQuizzes =
+          (saveData.totalQuizzes || 0) + 1;
+
+        persist();
+        renderStats();
+
         $("quizPanel").innerHTML = `
           <h3>🎉 測驗完成！</h3>
           <p>太棒了！你已完成這次的兩道環保知識測驗。</p>
@@ -596,12 +644,17 @@ function checkAnswer(index) {
     $("quizPanel").appendChild(next);
 
   } else {
+    // 答錯也要保存作答次數
+    persist();
+    renderStats();
+
     feedback.textContent =
       "再想一想，選擇其他答案試試看！答對才會獲得 EXP。";
 
     showToast("再試一次，你可以的！");
   }
 }
+
 
 function updateBuildButtons(){
   const allUnlocked=saveData.exp>=FOG_COUNT*UNLOCK_COST;
