@@ -862,13 +862,7 @@ function updateBuildButtons(){
 
 function build(type){
   // 使用永久土地解鎖紀錄
-  const allUnlocked =
-    (saveData.unlockedLand || 0) >= FOG_COUNT;
-
-  if(!allUnlocked){
-    showToast("請先解鎖整張地圖！");
-    return;
-  }
+  
 
   const item = BUILDINGS[type];
 
