@@ -387,6 +387,7 @@ function renderGame(){
   $("playerName").textContent = "👤 " + saveData.nickname;
   $("expValue").textContent = saveData.exp;
   renderMap();
+  renderStats();
 }
 function renderMap(){
   $("expValue").textContent = saveData.exp;
@@ -402,6 +403,26 @@ function renderMap(){
   document.querySelectorAll(".build-plot").forEach(p=>p.style.opacity=unlocked>=FOG_COUNT?1:0);
   renderHouses();
 }
+
+function renderStats() {
+  const totalRecognitions = saveData.totalRecognitions || 0;
+  const totalQuizzes = saveData.totalQuizzes || 0;
+  const totalCorrect = saveData.totalCorrect || 0;
+  const totalAnswered = saveData.totalAnswered || 0;
+  const totalEarnedExp = saveData.totalEarnedExp || 0;
+
+  // 計算答題正確率
+  const accuracy = totalAnswered > 0
+    ? Math.round((totalCorrect / totalAnswered) * 100)
+    : 0;
+
+  // 更新首頁統計卡片
+  $("totalRecognitions").textContent = totalRecognitions;
+  $("totalQuizzes").textContent = totalQuizzes;
+  $("quizAccuracy").textContent = accuracy + "%";
+  $("totalEarnedExp").textContent = totalEarnedExp;
+}
+
 function renderHouses(){
   const layer=$("houseLayer"); layer.innerHTML="";
   const positions=[{x:39,y:70},{x:49,y:75},{x:63,y:72},{x:73,y:62},{x:31,y:62},{x:57,y:60}];
@@ -706,12 +727,19 @@ $("logoutBtn").addEventListener("click", async ()=>{
     localStorage.removeItem(STORAGE_KEY);
 
     // 重設目前畫面資料，不刪除雲端進度
-    saveData = {
-      nickname: "",
-      exp: 0,
-      built: [],
-      quizDone: []
-    };
+    
+saveData = {
+  nickname: "",
+  exp: 0,
+  built: [],
+  quizDone: [],
+  totalRecognitions: 0,
+  totalQuizzes: 0,
+  totalCorrect: 0,
+  totalAnswered: 0,
+  totalEarnedExp: 0
+};
+
 
     $("gameScreen").classList.add("hidden");
     $("loginScreen").classList.remove("hidden");
