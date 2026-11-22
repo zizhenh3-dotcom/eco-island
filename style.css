@@ -102,3 +102,32 @@
     font-size: 23px;
   }
 }
+/* 手繪風格建築圖片 */
+.placed-house-image {
+  display: block;
+  width: 10%;
+  height: auto;
+  object-fit: contain;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+  filter: drop-shadow(2px 4px 3px rgba(55, 85, 55, 0.2));
+  transition: transform 0.25s ease;
+}
+
+/* 電腦版建築尺寸 */
+@media (min-width: 768px) {
+  .placed-house-image {
+    width: 11%;
+    max-width: 130px;
+  }
+}
+
+/* 手機版建築尺寸 */
+@media (max-width: 767px) {
+  .placed-house-image {
+    width: 13%;
+    min-width: 42px;
+  }
+}
