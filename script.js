@@ -27,13 +27,48 @@ let aiReports = JSON.parse(
 const UNLOCK_COST = 40;
 const EXP_PER_CORRECT = 20;
 const FOG_COUNT = 6;
-const BUILDINGS = { house: {cost:60, emoji:"🏡", name:"溫馨小屋"}, garden:{cost:40,emoji:"🌳",name:"綠意庭院"} };
+const BUILDINGS = {
+  house: {
+    cost: 60,
+    emoji: "🏡",
+    name: "溫馨小屋",
+    unlockExp: 0
+  },
 
+  garden: {
+    cost: 40,
+    emoji: "🌳",
+    name: "綠意庭院",
+    unlockExp: 0
+  },
+
+  windmill: {
+    cost: 80,
+    emoji: "🌬️",
+    name: "環保風力屋",
+    unlockExp: 100
+  },
+
+  solar: {
+    cost: 100,
+    emoji: "☀️",
+    name: "太陽能中心",
+    unlockExp: 200
+  },
+
+  recycling: {
+    cost: 120,
+    emoji: "♻️",
+    name: "資源回收站",
+    unlockExp: 300
+  }
+};
 let saveData = {
   nickname: "",
   exp: 0,
   built: [],
   quizDone: [],
+  unlockedLand: 0,
   totalRecognitions: 0,
   totalQuizzes: 0,
   totalCorrect: 0,
@@ -228,7 +263,27 @@ function createQuiz(category) {
 }
 
 function loadSave(){
-  try { const raw = localStorage.getItem(STORAGE_KEY); if(raw) saveData = {...saveData,...JSON.parse(raw)}; } catch(e){ console.warn("讀取進度失敗",e); }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+
+    if(raw) {
+      saveData = {...saveData, ...JSON.parse(raw)};
+    }
+
+    // 舊存檔沒有永久解鎖紀錄時，保留可推算的進度
+    if(saveData.unlockedLand === undefined) {
+      saveData.unlockedLand = Math.min(
+        FOG_COUNT,
+        Math.max(
+          Math.floor((saveData.exp || 0) / UNLOCK_COST),
+          Math.floor((saveData.totalEarnedExp || 0) / UNLOCK_COST)
+        )
+      );
+    }
+
+  } catch(e) {
+    console.warn("讀取進度失敗", e);
+  }
 }
 
 function persist(){
@@ -389,18 +444,32 @@ function renderGame(){
   renderMap();
   renderStats();
 }
-function renderMap(){
+function renderMap() {
   $("expValue").textContent = saveData.exp;
-  const unlocked = Math.min(FOG_COUNT, Math.floor(saveData.exp / UNLOCK_COST));
-  document.querySelectorAll(".fog-cloud").forEach((cloud)=>{
+
+  const unlocked = Math.min(
+    FOG_COUNT,
+    saveData.unlockedLand || 0
+  );
+
+  document.querySelectorAll(".fog-cloud").forEach((cloud) => {
     const number = Number(cloud.dataset.fog);
     cloud.classList.toggle("unlocked", number <= unlocked);
   });
+
   const percent = Math.round(unlocked / FOG_COUNT * 100);
   $("mapProgressText").textContent = `地圖探索進度 ${percent}%`;
   $("mapProgressBar").style.width = percent + "%";
-  $("nextUnlockText").textContent = unlocked >= FOG_COUNT ? "🎉 全部土地已解鎖！EXP 可用於建設" : `下一片土地：${(unlocked+1)*UNLOCK_COST} EXP`;
-  document.querySelectorAll(".build-plot").forEach(p=>p.style.opacity=unlocked>=FOG_COUNT?1:0);
+
+  $("nextUnlockText").textContent =
+    unlocked >= FOG_COUNT
+      ? "🎉 全部土地已解鎖！EXP 可用於建設"
+      : `下一片土地：${(unlocked + 1) * UNLOCK_COST} 累積 EXP`;
+
+  document.querySelectorAll(".build-plot").forEach(p => {
+    p.style.opacity = unlocked >= FOG_COUNT ? 1 : 0;
+  });
+
   renderHouses();
 }
 
@@ -423,15 +492,60 @@ function renderStats() {
   $("totalEarnedExp").textContent = totalEarnedExp;
 }
 
+
 function renderHouses(){
-  const layer=$("houseLayer"); layer.innerHTML="";
-  const positions=[{x:39,y:70},{x:49,y:75},{x:63,y:72},{x:73,y:62},{x:31,y:62},{x:57,y:60}];
+  const layer = $("houseLayer");
+  layer.innerHTML = "";
+
+  const positions = [
+    {x:39,y:70},
+    {x:49,y:75},
+    {x:63,y:72},
+    {x:73,y:62},
+    {x:31,y:62},
+    {x:57,y:60}
+  ];
+
+  // 建築圖片對照表
+  const buildingImages = {
+    house: "assets/house.png",
+    garden: "assets/garden.png",
+    windmill: "assets/windmill.png",
+    solar: "assets/solar_center.png",
+    recycling: "assets/recycling_center.png"
+  };
+
   saveData.built.forEach((b,i)=>{
-    const pos = (typeof b.x === "number" && typeof b.y === "number") ? {x:b.x,y:b.y} : positions[i%positions.length];
-    const el=document.createElement("span");
-    el.className="placed-house";el.textContent=b.emoji;el.style.left=pos.x+"%";el.style.top=pos.y+"%";layer.appendChild(el);
+    const pos =
+      (typeof b.x === "number" && typeof b.y === "number")
+      ? {x:b.x,y:b.y}
+      : positions[i % positions.length];
+
+    const el = document.createElement("img");
+
+    el.className = "placed-house-image";
+    el.src = buildingImages[b.type] || buildingImages.house;
+    el.alt = b.name || "環保小島建築";
+
+    el.style.position = "absolute";
+    el.style.left = pos.x + "%";
+    el.style.top = pos.y + "%";
+    el.style.width = "10%";
+    el.style.maxWidth = "120px";
+    el.style.minWidth = "48px";
+    el.style.height = "auto";
+    el.style.transform = "translate(-50%, -50%)";
+    el.style.objectFit = "contain";
+    el.style.pointerEvents = "none";
+
+    el.onerror = function(){
+      console.error("建築圖片載入失敗：", this.src);
+    };
+
+    layer.appendChild(el);
   });
 }
+
 function openScan(){showModal("scanModal");}
 async function loadModel(){
   if(model) return true;
@@ -610,6 +724,14 @@ function checkAnswer(index) {
     // 累計實際獲得的 EXP
     saveData.totalEarnedExp =
       (saveData.totalEarnedExp || 0) + EXP_PER_CORRECT;
+    // 依照累積獲得的 EXP 永久解鎖土地
+saveData.unlockedLand = Math.min(
+  FOG_COUNT,
+  Math.max(
+    saveData.unlockedLand || 0,
+    Math.floor(saveData.totalEarnedExp / UNLOCK_COST)
+  )
+);
 
     persist();
     renderStats();
@@ -677,35 +799,146 @@ function checkAnswer(index) {
 }
 
 
+
 function updateBuildButtons(){
-  const allUnlocked=saveData.exp>=FOG_COUNT*UNLOCK_COST;
-  $("buildIntro").textContent=allUnlocked?"🎉 小島已全部探索完成！選擇建築，放到空曠土地上吧。":`目前還有雲霧尚未散去。需要累積 ${FOG_COUNT*UNLOCK_COST} EXP 才能開始建設。`;
-  $("buildHouseBtn").disabled=!allUnlocked||saveData.exp<BUILDINGS.house.cost;
-  $("buildGardenBtn").disabled=!allUnlocked||saveData.exp<BUILDINGS.garden.cost;
+  const allUnlocked =
+    (saveData.unlockedLand || 0) >= FOG_COUNT;
+
+  $("buildIntro").textContent = allUnlocked
+    ? "🎉 小島已全部探索完成！選擇建築，放到空曠土地上吧。"
+    : `目前還有雲霧尚未散去。需要累積 ${FOG_COUNT * UNLOCK_COST} EXP 才能開始建設。`;
+
+  const buttonInfo = [
+    ["buildHouseBtn", "house"],
+    ["buildGardenBtn", "garden"],
+    ["buildWindmillBtn", "windmill"],
+    ["buildSolarBtn", "solar"],
+    ["buildRecyclingBtn", "recycling"]
+  ];
+
+  buttonInfo.forEach(([id, type]) => {
+    const btn = $(id);
+    if (!btn) return;
+
+    const item = BUILDINGS[type];
+    const expUnlocked =
+      (saveData.totalEarnedExp || 0) >= (item.unlockExp || 0);
+
+    btn.disabled =
+      !allUnlocked ||
+      !expUnlocked ||
+      saveData.exp < item.cost;
+  });
 }
+
 function build(type){
-  const allUnlocked=saveData.exp>=FOG_COUNT*UNLOCK_COST;
-  if(!allUnlocked){showToast("請先解鎖整張地圖！");return;}
-  const item=BUILDINGS[type];if(saveData.exp<item.cost){showToast("EXP 還不夠喔！");return;}
-  pendingBuildType=type;
+  // 使用永久土地解鎖紀錄
+  const allUnlocked =
+    (saveData.unlockedLand || 0) >= FOG_COUNT;
+
+  if(!allUnlocked){
+    showToast("請先解鎖整張地圖！");
+    return;
+  }
+
+  const item = BUILDINGS[type];
+
+  if(!item){
+    showToast("找不到這項建築！");
+    return;
+  }
+
+  // 檢查特殊建築的累積 EXP 解鎖門檻
+  const requiredExp = item.unlockExp || 0;
+
+  if((saveData.totalEarnedExp || 0) < requiredExp){
+    showToast(`累積獲得 ${requiredExp} EXP 才能解鎖這項建築！`);
+    return;
+  }
+
+  // 檢查目前持有的 EXP 是否足夠
+  if(saveData.exp < item.cost){
+    showToast("目前持有的 EXP 還不夠喔！");
+    return;
+  }
+
+  pendingBuildType = type;
   hideModal("buildModal");
-  $("buildStatus").textContent=`已選擇${item.name}。請在地圖上點選一塊空曠草地放置；確認位置後才會扣除 ${item.cost} EXP。`;
+
+  $("buildStatus").textContent =
+    `已選擇${item.name}。請在地圖上點選一塊空曠草地放置；確認位置後才會扣除 ${item.cost} EXP。`;
+
   showToast("請在地圖空地上點一下，放置建築！");
 }
 function placeBuilding(event){
   if(!pendingBuildType)return;
-  const map=$("islandMap");
-  const rect=map.getBoundingClientRect();
-  const x=((event.clientX-rect.left)/rect.width)*100;
-  const y=((event.clientY-rect.top)/rect.height)*100;
-  // 限制在島嶼中央草地，避免建築放到海面或畫面外。
-  if(x<28||x>82||y<48||y>88){showToast("請選擇島嶼中央的空曠草地！");return;}
-  const item=BUILDINGS[pendingBuildType];
-  if(saveData.exp<item.cost){pendingBuildType=null;showToast("EXP 不足，無法完成建造。");return;}
-  saveData.exp-=item.cost;
-  saveData.built.push({type:pendingBuildType,emoji:item.emoji,name:item.name,x,y});
-  pendingBuildType=null;persist();renderMap();updateBuildButtons();
-  $("buildStatus").textContent=`建造成功！${item.name} 已放在你選擇的位置。`;
+
+  // 確認土地已永久全部解鎖
+  const allUnlocked =
+    (saveData.unlockedLand || 0) >= FOG_COUNT;
+
+  if(!allUnlocked){
+    pendingBuildType = null;
+    showToast("請先解鎖整張地圖！");
+    return;
+  }
+
+  const item = BUILDINGS[pendingBuildType];
+
+  if(!item){
+    pendingBuildType = null;
+    showToast("找不到這項建築！");
+    return;
+  }
+
+  // 確認建築已達到累積 EXP 解鎖門檻
+  const requiredExp = item.unlockExp || 0;
+
+  if((saveData.totalEarnedExp || 0) < requiredExp){
+    pendingBuildType = null;
+    showToast(`累積獲得 ${requiredExp} EXP 才能解鎖這項建築！`);
+    return;
+  }
+
+  // 確認目前 EXP 足夠
+  if(saveData.exp < item.cost){
+    pendingBuildType = null;
+    showToast("EXP 不足，無法完成建造。");
+    return;
+  }
+
+  const map = $("islandMap");
+  const rect = map.getBoundingClientRect();
+
+  const x = ((event.clientX - rect.left) / rect.width) * 100;
+  const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+  // 限制在島嶼中央草地
+  if(x < 28 || x > 82 || y < 48 || y > 88){
+    showToast("請選擇島嶼中央的空曠草地！");
+    return;
+  }
+
+  // 成功放置後才扣除 EXP
+  saveData.exp -= item.cost;
+
+  saveData.built.push({
+    type: pendingBuildType,
+    emoji: item.emoji,
+    name: item.name,
+    x,
+    y
+  });
+
+  pendingBuildType = null;
+
+  persist();
+  renderMap();
+  updateBuildButtons();
+
+  $("buildStatus").textContent =
+    `建造成功！${item.name} 已放在你選擇的位置。`;
+
   showToast("建設完成！小島變得更美了！");
 }
 function setupEvents(){
