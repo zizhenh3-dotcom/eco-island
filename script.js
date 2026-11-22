@@ -262,29 +262,37 @@ function createQuiz(category) {
   return questions;
 }
 
+
 function loadSave(){
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
 
     if(raw) {
-      saveData = {...saveData, ...JSON.parse(raw)};
-    }
+      const saved = JSON.parse(raw);
 
-    // 舊存檔沒有永久解鎖紀錄時，保留可推算的進度
-    if(saveData.unlockedLand === undefined) {
-      saveData.unlockedLand = Math.min(
-        FOG_COUNT,
-        Math.max(
-          Math.floor((saveData.exp || 0) / UNLOCK_COST),
-          Math.floor((saveData.totalEarnedExp || 0) / UNLOCK_COST)
-        )
-      );
+      // 先確認舊存檔是否有永久解鎖紀錄
+      const hasLandRecord =
+        Object.prototype.hasOwnProperty.call(saved, "unlockedLand");
+
+      saveData = {...saveData, ...saved};
+
+      // 舊存檔沒有紀錄時，依照既有進度推算
+      if(!hasLandRecord) {
+        saveData.unlockedLand = Math.min(
+          FOG_COUNT,
+          Math.max(
+            Math.floor((saveData.exp || 0) / UNLOCK_COST),
+            Math.floor((saveData.totalEarnedExp || 0) / UNLOCK_COST)
+          )
+        );
+      }
     }
 
   } catch(e) {
     console.warn("讀取進度失敗", e);
   }
 }
+
 
 function persist(){
   // 保留本機備份
@@ -297,6 +305,7 @@ function persist(){
       exp: saveData.exp,
       built: saveData.built,
       quizDone: saveData.quizDone,
+      unlockedLand: saveData.unlockedLand || 0,
 
       // 學習統計資料
       totalRecognitions: saveData.totalRecognitions || 0,
@@ -414,14 +423,37 @@ async function signInWithGoogle(){
     const userRef = db.collection("users").doc(user.uid);
     const userDoc = await userRef.get();
 
-    if(userDoc.exists){
-      saveData = {
-        ...saveData,
-        ...userDoc.data()
-      };
+    
+if(userDoc.exists){
 
-      cloudReady = true;
-      renderGame();
+  const cloudData = userDoc.data();
+
+  const hasLandRecord =
+    Object.prototype.hasOwnProperty.call(cloudData, "unlockedLand");
+
+  saveData = {
+    ...saveData,
+    ...cloudData
+  };
+
+  // 舊雲端資料沒有永久解鎖紀錄時，保留可推算的進度
+  if(!hasLandRecord) {
+    saveData.unlockedLand = Math.min(
+      FOG_COUNT,
+      Math.max(
+        saveData.unlockedLand || 0,
+        Math.floor((saveData.exp || 0) / UNLOCK_COST),
+        Math.floor((saveData.totalEarnedExp || 0) / UNLOCK_COST)
+      )
+    );
+  }
+
+  cloudReady = true;
+  persist();
+  renderGame();
+
+}
+
     }else{
   cloudReady = true;
 
@@ -527,16 +559,13 @@ function renderHouses(){
     el.src = buildingImages[b.type] || buildingImages.house;
     el.alt = b.name || "環保小島建築";
 
-    el.style.position = "absolute";
-    el.style.left = pos.x + "%";
-    el.style.top = pos.y + "%";
-    el.style.width = "10%";
-    el.style.maxWidth = "120px";
-    el.style.minWidth = "48px";
-    el.style.height = "auto";
-    el.style.transform = "translate(-50%, -50%)";
-    el.style.objectFit = "contain";
-    el.style.pointerEvents = "none";
+    
+el.style.position = "absolute";
+el.style.left = pos.x + "%";
+el.style.top = pos.y + "%";
+el.style.transform = "translate(-50%, -50%)";
+el.style.pointerEvents = "none";
+
 
     el.onerror = function(){
       console.error("建築圖片載入失敗：", this.src);
@@ -870,18 +899,11 @@ function build(type){
 
   showToast("請在地圖空地上點一下，放置建築！");
 }
+
 function placeBuilding(event){
   if(!pendingBuildType)return;
 
-  // 確認土地已永久全部解鎖
-  const allUnlocked =
-    (saveData.unlockedLand || 0) >= FOG_COUNT;
-
-  if(!allUnlocked){
-    pendingBuildType = null;
-    showToast("請先解鎖整張地圖！");
-    return;
-  }
+  
 
   const item = BUILDINGS[pendingBuildType];
 
@@ -891,7 +913,7 @@ function placeBuilding(event){
     return;
   }
 
-  // 確認建築已達到累積 EXP 解鎖門檻
+  // 檢查特殊建築解鎖門檻
   const requiredExp = item.unlockExp || 0;
 
   if((saveData.totalEarnedExp || 0) < requiredExp){
@@ -900,7 +922,7 @@ function placeBuilding(event){
     return;
   }
 
-  // 確認目前 EXP 足夠
+  // 檢查目前持有 EXP
   if(saveData.exp < item.cost){
     pendingBuildType = null;
     showToast("EXP 不足，無法完成建造。");
@@ -913,9 +935,9 @@ function placeBuilding(event){
   const x = ((event.clientX - rect.left) / rect.width) * 100;
   const y = ((event.clientY - rect.top) / rect.height) * 100;
 
-  // 限制在島嶼中央草地
-  if(x < 28 || x > 82 || y < 48 || y > 88){
-    showToast("請選擇島嶼中央的空曠草地！");
+  // 擴大可放置範圍，保留地圖四周邊界
+  if(x < 8 || x > 92 || y < 8 || y > 92){
+    showToast("請在地圖範圍內選擇位置！");
     return;
   }
 
@@ -941,6 +963,7 @@ function placeBuilding(event){
 
   showToast("建設完成！小島變得更美了！");
 }
+
 function setupEvents(){
   $("googleLoginBtn").addEventListener("click",signInWithGoogle);
   // Google 帳號登出
@@ -966,6 +989,7 @@ saveData = {
   exp: 0,
   built: [],
   quizDone: [],
+  unlockedLand: 0,
   totalRecognitions: 0,
   totalQuizzes: 0,
   totalCorrect: 0,
@@ -1040,11 +1064,30 @@ auth.onAuthStateChanged(async user => {
 
     if(userDoc.exists){
 
-      // 讀取雲端遊戲進度
-      saveData = {
-        ...saveData,
-        ...userDoc.data()
-      };
+      
+// 讀取雲端遊戲進度
+const cloudData = userDoc.data();
+
+const hasLandRecord =
+  Object.prototype.hasOwnProperty.call(cloudData, "unlockedLand");
+
+saveData = {
+  ...saveData,
+  ...cloudData
+};
+
+// 舊雲端資料沒有永久解鎖紀錄時，推算原有進度
+if(!hasLandRecord) {
+  saveData.unlockedLand = Math.min(
+    FOG_COUNT,
+    Math.max(
+      saveData.unlockedLand || 0,
+      Math.floor((saveData.exp || 0) / UNLOCK_COST),
+      Math.floor((saveData.totalEarnedExp || 0) / UNLOCK_COST)
+    )
+  );
+}
+
 
       cloudReady = true;
       persist();
