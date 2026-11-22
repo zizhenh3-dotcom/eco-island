@@ -8,3 +8,97 @@
 .action-grid{max-width:1180px;margin:20px auto 0;padding:0 20px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.feature-card{display:flex;align-items:center;gap:14px;background:#fff;border-radius:22px;padding:18px;box-shadow:0 8px 22px rgba(49,111,83,.09)}.feature-icon{width:52px;height:52px;border-radius:16px;background:#e8f7e8;display:grid;place-items:center;font-size:27px;flex-shrink:0}.feature-card h3{margin:0 0 4px;font-size:16px}.feature-card p{margin:0;color:#8aa094;font-size:12px}.feature-card .secondary-btn{margin-left:auto;white-space:nowrap}.secondary-btn{background:#e7f6e9;color:#27734f;border:1px solid #c9e9d0}.scan-card .feature-icon{background:#e3f4ff}.build-card .feature-icon{background:#fff2d4}
 .modal{position:fixed;inset:0;background:rgba(21,62,55,.55);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}.modal-card{position:relative;background:#fff;border-radius:26px;padding:28px;width:min(540px,100%);max-height:92vh;overflow:auto;box-shadow:0 20px 70px rgba(0,0,0,.2)}.wide-modal{width:min(760px,100%)}.modal-card h2{margin:4px 0 8px;color:#286d50}.muted{color:#81968b;font-size:13px}.close-btn{position:absolute;right:17px;top:14px;width:34px;height:34px;border-radius:50%;background:#edf7ee;color:#4d7b62;font-weight:900}.camera-box{background:#eaf4ed;border-radius:18px;min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:16px 0}.camera-box canvas,.camera-box video,.image-preview{max-width:100%;max-height:340px;object-fit:contain}.button-row{display:flex;flex-wrap:wrap;gap:9px}.upload-btn{background:#fff2d4;color:#89651c;border:1px solid #f4dfa4;display:inline-flex;align-items:center}.upload-btn input{display:none}.status-text{font-size:12px;color:#789487;min-height:20px}.result-panel,.knowledge-panel,.quiz-panel{background:#f1faf1;border:1px solid #d8efda;border-radius:16px;padding:16px;margin-top:12px}.result-panel h3,.knowledge-panel h3,.quiz-panel h3{margin:0 0 7px}.knowledge-panel p{line-height:1.8;margin:6px 0;font-size:14px}.quiz-question{font-weight:700;margin:10px 0}.answer-btn{display:block;width:100%;text-align:left;margin:7px 0;padding:10px 12px;border:1px solid #d5e8d8;border-radius:12px;background:#fff;color:#416b53}.answer-btn:hover{background:#e9f7e9}.answer-btn:disabled{opacity:.7}.building-option{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #e2efe2;border-radius:16px;margin:12px 0}.building-emoji{font-size:30px}.building-option div{display:flex;flex-direction:column;gap:3px;flex:1}.building-option small{font-size:12px;color:#91a397}.building-option button:disabled{opacity:.45;cursor:not-allowed}.guide-list{padding-left:20px;line-height:2.1;color:#5c7b69}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#245f48;color:#fff;padding:12px 20px;border-radius:99px;z-index:50;box-shadow:var(--shadow);font-size:13px}
 @media(max-width:720px){.topbar{flex-wrap:wrap}.brand{width:100%}.player-stats{margin-right:auto}.island-heading{align-items:start;flex-direction:column}.progress-wrap{width:100%}.island-map{min-height:270px}.action-grid{grid-template-columns:1fr}.feature-card{flex-wrap:wrap}.feature-card .secondary-btn{margin-left:0}.map-footer{align-items:flex-start;flex-direction:column}.fog-cloud{font-size:9px}.fog-cloud span{font-size:16px}.map-frame{padding:5px;border-width:5px}.modal-card{padding:24px 18px}.button-row>*{flex:1;justify-content:center}}
+/* ===== 我的學習統計 ===== */
+
+.stats-section {
+  margin: 28px 0;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #dcebdc;
+  border-radius: 22px;
+  box-shadow: 0 8px 24px rgba(57, 112, 75, 0.08);
+}
+
+.stats-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stats-heading h2 {
+  margin: 4px 0 0;
+  color: #356d4b;
+}
+
+.stats-subtitle {
+  color: #7b9b83;
+  font-size: 13px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  background: #f1f8ef;
+  border: 1px solid #e0eddd;
+  border-radius: 16px;
+}
+
+.stat-icon {
+  font-size: 28px;
+}
+
+.stat-card p {
+  margin: 0 0 6px;
+  color: #6c8b72;
+  font-size: 13px;
+}
+
+.stat-card strong {
+  color: #36794e;
+  font-size: 27px;
+}
+
+.stat-card small {
+  margin-left: 4px;
+  color: #78947c;
+}
+
+/* 手機版排列 */
+@media (max-width: 650px) {
+  .stats-section {
+    padding: 16px;
+  }
+
+  .stats-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .stat-icon {
+    font-size: 23px;
+  }
+
+  .stat-card strong {
+    font-size: 23px;
+  }
+}
