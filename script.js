@@ -17,6 +17,7 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = "ecoIslandSave_v2";
 // AI 辨識錯誤回報紀錄
