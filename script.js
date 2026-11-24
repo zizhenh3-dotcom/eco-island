@@ -1079,12 +1079,28 @@ $("nicknameInput").addEventListener("keydown",e=>{
   $("startCameraBtn").addEventListener("click",startCamera);
   $("predictBtn").addEventListener("click",predictImage);
   $("submitAiReportBtn").addEventListener("click",submitAiReport);
-  $("imageUpload").addEventListener("change",e=>{
-    const file=e.target.files[0];if(!file)return;
-    const img=$("imagePreview");img.src=URL.createObjectURL(file);img.classList.remove("hidden");selectedImage=img;
-    if(webcam){webcam.stop();webcam=null;$("webcam-container").innerHTML="";}
-    $("predictBtn").disabled=false;$("scanStatus").textContent="圖片已載入，按「辨識圖片」開始分析。";
-  });
+ 
+$("imageUpload").addEventListener("change",e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  // 上傳圖片時停止相機
+  stopCamera();
+
+  // 清除舊圖片預覽
+  const img = $("imagePreview");
+
+  img.src = URL.createObjectURL(file);
+  img.classList.remove("hidden");
+
+  selectedImage = img;
+
+  $("predictBtn").disabled = false;
+
+  $("scanStatus").textContent =
+    "圖片已載入，按「辨識圖片」開始分析。";
+});
+
   
 $("buildHouseBtn").addEventListener("click",()=>build("house"));
 $("buildGardenBtn").addEventListener("click",()=>build("garden"));
