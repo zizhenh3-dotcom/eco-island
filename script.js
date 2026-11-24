@@ -323,7 +323,22 @@ function persist(){
 
 function showToast(message){ const t=$("toast"); t.textContent=message; t.classList.remove("hidden"); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.add("hidden"),2600); }
 function showModal(id){ $(id).classList.remove("hidden"); }
-function hideModal(id){ $(id).classList.add("hidden"); }
+function stopCamera(){
+  if(webcam){
+    webcam.stop();
+    webcam=null;
+  }
+
+  $("webcam-container").innerHTML="";
+}
+
+function hideModal(id){
+  if(id==="scanModal"){
+    stopCamera();
+  }
+
+  $(id).classList.add("hidden");
+}
 
 async function submitAiReport(){
   const correctCategory = $("correctCategory").value;
