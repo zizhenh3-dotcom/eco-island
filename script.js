@@ -600,28 +600,51 @@ async function loadModel(){
     $("scanStatus").textContent="AI 模型載入完成，可以開始辨識。"; return true;
   }catch(err){console.error(err);$("scanStatus").textContent="模型載入失敗。請確認模型網址、網路連線與模型是否已公開。";return false;}
 }
+
 async function startCamera(){
-  const ok=await loadModel(); if(!ok)return;
+  const ok = await loadModel();
+  if(!ok) return;
+
   try{
-    if(webcam){webcam.stop();webcam=null;}
-   $("webcam-container").innerHTML="";
-$("imagePreview").classList.add("hidden");
+    // 停止舊相機
+    stopCamera();
 
-// 清除之前上傳的圖片，改用即時鏡頭辨識
-selectedImage = null;
-$("imageUpload").value = "";
-webcam = new tmImage.Webcam(360, 270, false);
+    // 清除之前上傳的圖片
+    selectedImage = null;
+    $("imageUpload").value = "";
+    $("imagePreview").classList.add("hidden");
 
-await webcam.setup({
-  facingMode: { ideal: "environment" }
-});
+    $("predictionResult").classList.add("hidden");
 
-await webcam.play();
-    $("webcam-container").appendChild(webcam.canvas); $("predictBtn").disabled=false;
-    $("scanStatus").textContent="相機已開啟，請將垃圾物品放在畫面中央。";
+    // 建立相機
+    webcam = new tmImage.Webcam(360, 270, false);
+
+    // 優先使用手機後置鏡頭
+    await webcam.setup({
+      facingMode: { ideal: "environment" }
+    });
+
+    await webcam.play();
+
+    $("webcam-container").appendChild(webcam.canvas);
+
+    $("predictBtn").disabled = false;
+
+    $("scanStatus").textContent =
+      "相機已開啟，請將垃圾物品放在畫面中央。";
+
     requestAnimationFrame(cameraLoop);
-  }catch(err){console.error(err);$("scanStatus").textContent="無法開啟相機。請允許瀏覽器使用相機，並使用 HTTPS 或 localhost。";}
+
+  }catch(err){
+    console.error(err);
+
+    stopCamera();
+
+    $("scanStatus").textContent =
+      "無法開啟相機，請確認相機權限及 HTTPS 連線。";
+  }
 }
+
 function cameraLoop(){if(webcam&&!$("scanModal").classList.contains("hidden")){webcam.update();requestAnimationFrame(cameraLoop);}}
 
 async function predictImage(){
