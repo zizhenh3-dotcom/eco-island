@@ -589,7 +589,12 @@ async function startCamera(){
   const ok=await loadModel(); if(!ok)return;
   try{
     if(webcam){webcam.stop();webcam=null;}
-    $("webcam-container").innerHTML="";$("imagePreview").classList.add("hidden");
+   $("webcam-container").innerHTML="";
+$("imagePreview").classList.add("hidden");
+
+// 清除之前上傳的圖片，改用即時鏡頭辨識
+selectedImage = null;
+$("imageUpload").value = "";
     webcam=new tmImage.Webcam(360,270,true); await webcam.setup(); await webcam.play();
     $("webcam-container").appendChild(webcam.canvas); $("predictBtn").disabled=false;
     $("scanStatus").textContent="相機已開啟，請將垃圾物品放在畫面中央。";
