@@ -647,6 +647,7 @@ async function startCamera(){
 
 function cameraLoop(){if(webcam&&!$("scanModal").classList.contains("hidden")){webcam.update();requestAnimationFrame(cameraLoop);}}
 
+
 async function predictImage(){
   const ok = await loadModel();
   if(!ok) return;
@@ -654,28 +655,37 @@ async function predictImage(){
   try{
     let predictions;
 
-    if(selectedImage){
-      predictions = await model.predict(selectedImage);
-    }
-    else if(webcam){
+    // 優先辨識目前鏡頭畫面
+    if(webcam){
+      webcam.update();
       predictions = await model.predict(webcam.canvas);
     }
+
+    // 沒有開啟相機時，才使用上傳圖片
+    else if(selectedImage){
+      predictions = await model.predict(selectedImage);
+    }
+
     else{
-      $("scanStatus").textContent = "請先開啟相機或上傳圖片。";
+      $("scanStatus").textContent =
+        "請先開啟相機或上傳圖片。";
       return;
     }
 
-    predictions.sort((a,b) => b.probability - a.probability);
+    predictions.sort(
+      (a,b) => b.probability - a.probability
+    );
 
     const best = predictions[0];
     const category = mapLabel(best.className);
 
     currentCategory = category;
-    saveData.totalRecognitions =
-  (saveData.totalRecognitions || 0) + 1;
 
-persist();
-renderStats();
+    saveData.totalRecognitions =
+      (saveData.totalRecognitions || 0) + 1;
+
+    persist();
+    renderStats();
 
     $("predictionResult").classList.remove("hidden");
 
@@ -704,7 +714,9 @@ renderStats();
 
   }catch(err){
     console.error(err);
-    $("scanStatus").textContent = "辨識時發生問題，請再試一次。";
+
+    $("scanStatus").textContent =
+      "辨識時發生問題，請再試一次。";
   }
 }
 
